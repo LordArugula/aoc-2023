@@ -1,0 +1,10 @@
+day-x/
+init.sh
+
+*/target/
+
+.cargo
+.git
+
+.replit
+replit.nix

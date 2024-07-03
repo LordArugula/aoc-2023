@@ -1,0 +1,111 @@
+use std::collections::HashMap;
+
+fn main() {
+  let input = include_str!("./input.txt");
+  let output = part_one(input);
+  println!("{}", output);
+}
+
+fn part_one(input: &str) -> u32 {
+  let map = parse_map(input);
+
+  let galaxies = map.iter()
+    .enumerate()
+    .map(|(row, l)| {
+      l.iter()
+        .enumerate()
+        .filter(|(_, &c)| c == '#')
+        .map(move |(col, _)| (row, col))
+    })
+    .flatten()
+    .collect::<Vec<_>>();
+
+  println!("Galaxies: {:?}", galaxies);
+  
+  let (row_lookup, col_lookup) = galaxies.iter()
+    .fold(
+      (HashMap::new(), HashMap::new()),
+      |(mut row_lookup, mut col_lookup), &(row, col)| {
+        let row_vec = row_lookup.entry(row).or_insert(Vec::new());
+        row_vec.push(col);
+        let col_vec = col_lookup.entry(col).or_insert(Vec::new());
+        col_vec.push(row);
+        (row_lookup, col_lookup)
+      },
+    );
+  
+  let map_height = map.len();
+  let map_width = map[0].len();
+
+  let empty_rows = (0..map_height)
+    .filter(|&row| !row_lookup.contains_key(row))
+    .collect::<Vec<_>>();
+
+  let empty_cols = (0..map_width)
+    .filter(|&col| !col_lookup.contains_key(col))
+    .collect::<Vec<_>>();
+
+  println!("Empty rows: {:?}", empty_rows);  
+  println!("Empty cols: {:?}", empty_cols);  
+  
+  let new_galaxies = galaxies.iter()
+    .map(|&(row, col)| {
+      let num_empty_rows = empty_rows.iter()
+        .filter(|&&empty_row| empty_row < row)
+        .count();
+      
+      let num_empty_cols = empty_cols.iter()
+        .filter(|&&empty_col| empty_col < col)
+        .count();
+      (row + num_empty_rows, col + num_empty_cols)
+    })
+    .collect::<Vec<_>>();
+
+  galaxies.iter()
+    .zip(new_galaxies.iter())
+    .for_each(|(&a, &b)| {
+      println!("{:?} -> {:?}", a, b);
+    });
+  
+  new_galaxies.iter()
+    .map(|&galaxy_a| {
+      new_galaxies.iter()
+        .filter(|&&galaxy_b| galaxy_b != galaxy_a)
+        .map(|&galaxy_b| {
+          let (row_a, col_a) = galaxy_a;
+          let (row_b, col_b) = galaxy_b;
+          let dist = row_a.abs_diff(row_b) + col_a.abs_diff(col_b);
+          dist as u32
+        })
+        .sum::<u32>()
+    })
+    .sum()
+}
+
+pub fn parse_map(input: &str) -> Vec<Vec<char>> {
+  let map = input.lines()
+    .map(|l| l.chars().collect::<Vec<_>>())
+    .collect::<Vec<_>>();
+
+  map
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_part_one() {
+    assert_eq!(part_one("
+...#......
+.......#..
+#.........
+..........
+......#...
+.#........
+.........#
+..........
+.......#..
+#...#....."), 374);
+  }
+}
